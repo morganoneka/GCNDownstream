@@ -6,10 +6,10 @@ library(reshape)
 # percentage = a numeric value between 0 and 1
 getTopXPercentHubGenes <- function(g, percentage){
   # calculate hub scores
-  hub_scores <- hub.score(graphs)
+  hub_scores <- hub.score(g)
   
   # calculate how many genes "top 10%" is
-  num_genes = ceiling(length(g$vector)*percentage)
+  num_genes = ceiling(length(hub_scores$vector)*percentage)
   
   # sort in decreasing order of hub score, then grab the top 10%
   return(head(names(sort(hub_scores$vector, decreasing=TRUE)), num_genes))
@@ -39,19 +39,19 @@ calculateEdgeOccurrences <- function(matrixlist){
 # identify which edges are unique based on binarization
 # binarymxlist = list of binary matrices (output from convertAdjacencyToBinary)
 # output: list containing graph of unique edges
-identifyUniqueEdges <- function(binarymxlist){
+identifyUniqueEdges <- function(binarygraphs){
   
   # iterate over all binary matrices in the list
-  lapply(1:length(binarymxlist), function(i){
+  lapply(1:length(binarygraphs), function(i){
     
     # combine all graphs BUT index i
-    combo_graph = do.call(union, unweighted_graphs[setdiff(1:length(binarymxlist), i)])
+    combo_graph = do.call(union, binarygraphs[setdiff(1:length(binarygraphs), i)])
     
     # identify what edges ARE in the combo graph
-    intersect_graph = intersection(combo_graph, binarymxlist[[i]])
+    intersect_graph = intersection(combo_graph, binarygraphs[[i]])
     
     # return the edges NOT in that intersection
-    return(difference(binarymxlist[[i]], intersect_graph))
+    return(difference(binarygraphs[[i]], intersect_graph))
   })
 }
 

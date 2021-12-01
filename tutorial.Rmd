@@ -1,0 +1,84 @@
+---
+title: "GCN Tutorial: Graph Analysis"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+source("./gcns.R")
+```
+
+## Data formatting
+First, let's import some data. These are dummy genetic networks: six in total, each with 100 genes.
+```{r include=TRUE}
+
+networks = lapply(1:6, function(i){
+  read.table(paste("./sample_gcns/region_",i,".csv",sep=""), sep=",", fill=TRUE, stringsAsFactors=FALSE, header=TRUE)
+})
+
+```
+
+We'll start by convert our covariance matrices into graphs.
+```{r}
+graphs = lapply(networks, function(x){
+  graph_from_adjacency_matrix(as.matrix(x), weighted=TRUE)
+})
+```
+
+## Hub gene analysis
+Next, we can get the top hub genes for each graph.
+```{r}
+top_hub_genes = lapply(graphs, getTopXPercentHubGenes, percentage=0.25)
+
+print(top_hub_genes)
+
+```
+
+
+
+```{r}
+#TODO: a method to count which ones are in common
+```
+
+```{r}
+#TODO: a method to "impute" missing columns/rows so that the nodes are the same
+```
+
+## Modularization
+```{r}
+#TODO: a method for modularization based on  that algorithm I found a while ago
+```
+
+
+## Binary Graphs
+There are a few analyses we can do with binarized graphs, i.e. two genes are either covariable or not covariable. We next binarize our networks using a cutoff of 0.75. This is a fairly lax cut-off.
+```{r}
+binary_mx = lapply(networks, convertAdjacencyToBinary, cutoff=0.75)
+
+```
+
+
+We can see how frequently each possible edge occurs
+```{r}
+counts = calculateEdgeOccurrences(binary_mx) 
+table(counts$Count)
+```
+
+
+We can take a closer look at each unique edge network.
+```{r}
+binarygraphs = lapply(binary_mx, graph_from_adjacency_matrix)
+
+unique_edge_networks = identifyUniqueEdges(binarygraphs)
+
+```
+
+
+```{r}
+# TODO: statistics about unique edge networks and comparisons to original networks
+```
+
