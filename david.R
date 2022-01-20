@@ -39,24 +39,21 @@ only_columns_of_interest <- function(data_list, columns){
 # output occurrence info for a column in a human-readable format
 readable_counts <- function(data_list, column_name){
   
-  # get only significant values for that column
-  tmp_analysis <- significant_only(subset_category(fac_raw_unique, "Category", column_name), "PValue", 0.05)
-  
   # combine all info together
-  combo = do.call(rbind,lapply(1:length(tmp_analysis), function(i){
-    tmp_analysis[[i]]$Region = i
-    return(tmp_analysis[[i]])
+  combo = do.call(rbind,lapply(1:length(data_list), function(i){
+    data_list[[i]]$Region = i
+    return(data_list[[i]])
   }))
   
   # create table of counts
-  counts = as.data.frame(table(combo$Term))
+  counts = as.data.frame(table(combo[,column_name]))
   
   # create human-readable string of regions involved
-  #TODO: not everyone will have a "Region" column so figure out a way to make this work with other people's data
-  regions = as.data.frame(cbind(unique(combo$Term), unlist(lapply(unique(combo$Term), function(x){
-    as.character(paste(combo[which(combo$Term == x), "Region"], collapse=",", sep=","))
+  regions = as.data.frame(cbind(unique(combo[,column_name]), unlist(lapply(unique(combo[,column_name]), function(x){
+    as.character(paste(combo[which(combo[,column_name] == x), "Region"], collapse=",", sep=","))
   }))))
   
   merged_info = merge(counts, regions, by.x="Var1", by.y="V1")
+  colnames(merged_info) = c(column_name, "Frequency", "Indices")
   return(merged_info)
 }

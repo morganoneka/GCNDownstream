@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 source("./gcns.R")
+source("./david.R")
 ```
 
 ## Data formatting
@@ -23,15 +24,16 @@ networks = lapply(1:6, function(i){
 ```
 
 We'll start by convert our covariance matrices into graphs.
-```{r}
+```{r include=TRUE}
 graphs = lapply(networks, function(x){
   graph_from_adjacency_matrix(as.matrix(x), weighted=TRUE)
 })
 ```
 
 ## Hub gene analysis
-Next, we can get the top hub genes for each graph.
-```{r}
+In graph theory, a hub score indicates node importance. In the context of genetic co-expression networks, the genes with the highest hub scores are the genes that are most influential on other gene's exprsesion. We can get the top hub genes for each graph using the `getTopXPercentHubGenes` function.
+
+```{r include=TRUE}
 top_hub_genes = lapply(graphs, getTopXPercentHubGenes, percentage=0.25)
 
 print(top_hub_genes)
@@ -39,38 +41,32 @@ print(top_hub_genes)
 ```
 
 
+To get a better understanding of how frequently hub genes occur, and see what regions might share a given hub gene, we can use the `readable_counts` method that's included in the `david.R` script. The output will show, for each gene that is a hub gene, how many GCNs it is a hub gene for, and which GCNs it's a hub gene for.
+```{r include=TRUE}
+top_hub_genes_df = lapply(top_hub_genes, function(x){
+  data.frame(Genes=x)
+})
 
-```{r}
-#TODO: a method to count which ones are in common
-```
-
-```{r}
-#TODO: a method to "impute" missing columns/rows so that the nodes are the same
-```
-
-## Modularization
-```{r}
-#TODO: a method for modularization based on  that algorithm I found a while ago
+readable_counts(top_hub_genes_df, "Genes")
 ```
 
 
 ## Binary Graphs
-There are a few analyses we can do with binarized graphs, i.e. two genes are either covariable or not covariable. We next binarize our networks using a cutoff of 0.75. This is a fairly lax cut-off.
-```{r}
-binary_mx = lapply(networks, convertAdjacencyToBinary, cutoff=0.75)
-
+There are a few analyses we can do with binarized graphs, i.e. two genes are either covariable or not covariable. We next binarize our networks using a cutoff of 1. 
+```{r include=TRUE}
+binary_mx = lapply(networks, convertAdjacencyToBinary, cutoff=1)
 ```
 
 
-We can see how frequently each possible edge occurs
-```{r}
+We can see how frequently each possible edge occurs using the `calculateEdgeOccurrences` function, using the binary matrices we generated above as an input.
+```{r include=TRUE}
 counts = calculateEdgeOccurrences(binary_mx) 
 table(counts$Count)
 ```
 
 
-We can take a closer look at each unique edge network.
-```{r}
+We can take a closer look at each unique edge network. First, we convert the binary matrices to graphs using `graph_from_adjacency_matrix` from the igraph library. Then, we run `identifyUniqueEdges` on those graphs.
+```{r include=TRUE}
 binarygraphs = lapply(binary_mx, graph_from_adjacency_matrix)
 
 unique_edge_networks = identifyUniqueEdges(binarygraphs)
@@ -78,7 +74,71 @@ unique_edge_networks = identifyUniqueEdges(binarygraphs)
 ```
 
 
-```{r}
-# TODO: statistics about unique edge networks and comparisons to original networks
+The following code allows us to compare the number of edges in each original binarized graph to its unique edge network:
+```{r include=TRUE}
+data.frame(OriginalEdgeCount=unlist(lapply(binarygraphs, gsize)),
+           UniqueEdgeCount=unlist(lapply(unique_edge_networks, gsize)))
 ```
+
+
+## DAVID 
+In our initial analysis, we selected the top 10% of hub genes for each network and ran [DAVID pathway analysis](https://david.ncifcrf.gov/) to understand each network's core functionality. The following code does some data manipulation to more easily interpret output.
+
+First, we'll read in our DAVID output. It's saved as a `.txt` file.
+```{r include=TRUE}
+david_output <-  lapply(1:6, function(i){
+  read.table(paste("./sample_david/region_",i,".txt",sep=""), sep="\t", fill=TRUE, stringsAsFactors=FALSE, header=TRUE)
+})
+
+head(david_output[[1]])
+```
+
+First, we can use the `get_all_values` function to identify what types of terms we have.
+```{r include=TRUE}
+analysis_types = get_all_values(david_output, "Category")
+print(analysis_types)
+```
+
+The `subset_category` function allows us to focus on one category of terms at a time.
+```{r include=TRUE}
+go_subset = subset_category(david_output, "Category", "INTERPRO")
+print(go_subset[[2]])
+```
+
+
+We can also look at just the significant results as determined by some metric. Below, we'll filter out only results with a P-value below 0.0025. (This is a pretty low P-value used just for demonstration!)
+```{r include=TRUE}
+low_pvalue = significant_only(go_subset, "PValue", 0.0025)
+print(low_pvalue[[2]])
+```
+
+We can see that the `Insulin-like growth factor binding protein` result didn't make the cut and was removed.
+
+The `only_columns_of_interest` subsets each list based on the column names provided. It's included to allow for easier interpretation.
+```{r include=TRUE}
+low_pvalue %>% only_columns_of_interest(c("Category", "Term", "PValue"))
+```
+
+
+We can also take a look at which terms are unique to each region using the `get_unique_terms` function. Its parameters are our list of data.frames, and the column we want to find unique values for (in this case, `Term`). Its output is a list of terms unique to each region.
+```{r include=TRUE}
+get_unique_terms(david_output, "Term") %>% only_columns_of_interest(c("Category", "Term", "PValue"))
+```
+
+This is useful for doing downstream analysis, but for a more user-friendly output we can use the `readable_counts` function, which we previewed earlier. We run it with the same parameters of `get_unique_terms`.
+```{r include=TRUE}
+readable_counts(david_output, "Term") %>% head(10)
+```
+
+
+
+
+
+
+
+
+
+
+
+
 

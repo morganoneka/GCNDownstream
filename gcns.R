@@ -5,6 +5,10 @@ library(reshape)
 # g = an igraph object
 # percentage = a numeric value between 0 and 1
 getTopXPercentHubGenes <- function(g, percentage){
+  if (percentage <0 | percentage >1){
+    stop("Percentage must be between 0 and 1 (inclusive).")
+  }
+  
   # calculate hub scores
   hub_scores <- hub.score(g)
   
@@ -45,7 +49,16 @@ identifyUniqueEdges <- function(binarygraphs){
   lapply(1:length(binarygraphs), function(i){
     
     # combine all graphs BUT index i
-    combo_graph = do.call(union, binarygraphs[setdiff(1:length(binarygraphs), i)])
+    # combo_graph = do.call(union, binarygraphs[setdiff(1:length(binarygraphs), i)])
+    
+    # get list of all indices except current one
+    non_i_indices=setdiff(1:length(binarygraphs), i)
+    # set union graph to first in list
+    combo_graph = binarygraphs[[non_i_indices[1]]]
+    # union with the others
+    for(j in non_i_indices[-1]){
+      combo_graph<-igraph::union(combo_graph, binarygraphs[[j]])
+    } 
     
     # identify what edges ARE in the combo graph
     intersect_graph = intersection(combo_graph, binarygraphs[[i]])
