@@ -1,6 +1,10 @@
 ---
 title: "GCN Tutorial: Graph Analysis"
-output: html_document
+output:
+  html_document:
+    theme: yeti
+    toc: TRUE
+    toc_float: TRUE
 ---
 
 ```{r setup, include=FALSE}
@@ -8,14 +12,16 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-```{r}
+```{r results = FALSE, message=FALSE, warning=FALSE}
 source("./gcns.R")
 source("./david.R")
 ```
 
-## Data formatting
+## GCN analysis
+
+### Data formatting
 First, let's import some data. These are dummy genetic networks: six in total, each with 100 genes.
-```{r include=TRUE}
+```{r include=TRUE, warning=FALSE}
 
 networks = lapply(1:6, function(i){
   read.table(paste("./sample_gcns/region_",i,".csv",sep=""), sep=",", fill=TRUE, stringsAsFactors=FALSE, header=TRUE)
@@ -30,7 +36,7 @@ graphs = lapply(networks, function(x){
 })
 ```
 
-## Hub gene analysis
+### Hub gene analysis
 In graph theory, a hub score indicates node importance. In the context of genetic co-expression networks, the genes with the highest hub scores are the genes that are most influential on other gene's exprsesion. We can get the top hub genes for each graph using the `getTopXPercentHubGenes` function.
 
 ```{r include=TRUE}
@@ -47,11 +53,11 @@ top_hub_genes_df = lapply(top_hub_genes, function(x){
   data.frame(Genes=x)
 })
 
-readable_counts(top_hub_genes_df, "Genes")
+readable_counts(top_hub_genes_df, "Genes") %>% head(10)
 ```
 
 
-## Binary Graphs
+### Binary Graphs
 There are a few analyses we can do with binarized graphs, i.e. two genes are either covariable or not covariable. We next binarize our networks using a cutoff of 1. 
 ```{r include=TRUE}
 binary_mx = lapply(networks, convertAdjacencyToBinary, cutoff=1)
@@ -59,7 +65,7 @@ binary_mx = lapply(networks, convertAdjacencyToBinary, cutoff=1)
 
 
 We can see how frequently each possible edge occurs using the `calculateEdgeOccurrences` function, using the binary matrices we generated above as an input.
-```{r include=TRUE}
+```{r include=TRUE, warning=FALSE}
 counts = calculateEdgeOccurrences(binary_mx) 
 table(counts$Count)
 ```
@@ -93,6 +99,8 @@ david_output <-  lapply(1:6, function(i){
 head(david_output[[1]])
 ```
 
+### Helper functions
+
 First, we can use the `get_all_values` function to identify what types of terms we have.
 ```{r include=TRUE}
 analysis_types = get_all_values(david_output, "Category")
@@ -119,10 +127,12 @@ The `only_columns_of_interest` subsets each list based on the column names provi
 low_pvalue %>% only_columns_of_interest(c("Category", "Term", "PValue"))
 ```
 
+### Comparing and contrasting terms
 
 We can also take a look at which terms are unique to each region using the `get_unique_terms` function. Its parameters are our list of data.frames, and the column we want to find unique values for (in this case, `Term`). Its output is a list of terms unique to each region.
 ```{r include=TRUE}
-get_unique_terms(david_output, "Term") %>% only_columns_of_interest(c("Category", "Term", "PValue"))
+unique_terms_clean = get_unique_terms(david_output, "Term") %>% only_columns_of_interest(c("Category", "Term", "PValue"))
+lapply(unique_terms_clean, head) 
 ```
 
 This is useful for doing downstream analysis, but for a more user-friendly output we can use the `readable_counts` function, which we previewed earlier. We run it with the same parameters of `get_unique_terms`.

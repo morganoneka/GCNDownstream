@@ -4,9 +4,7 @@ A collection of scripts for comparing & contrasting GCNs and functional output f
 ## Data format
 You will need:
 - A directory containing GCNs. Should be an adjacency matrix, covariance, something like this.
-- A directory containing DAVID output. (TODO: include a tutorial for running DAVID)
-
-(TODO: tutorial using dummy data)
+- A directory containing DAVID output. 
 
 ## What these scripts do:
 ### Analysis of GCNs
@@ -18,5 +16,5 @@ You will need:
 
 ### Analysis of DAVID output
 - Split into output for each database
-- Count occurrences 
+- Count occurrences
 - Identify differences and similarities between 2+ outputs
